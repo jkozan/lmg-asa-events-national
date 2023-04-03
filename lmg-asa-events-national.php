@@ -71,7 +71,7 @@ class LMG_ASA_Events_National {
 		if ( is_admin() ) return false;
 
 		$events = get_option( 'lmgasaevtnat_events' );
-		echo '<pre>' . print_r( $events, true ) . '</pre>';
+		//echo '<pre>' . print_r( $events, true ) . '</pre>';
 
 		// fetch list of events once per day
 		if ( ! isset( $events['fetch_date'] ) || empty( $events['fetch_date'] ) || $this->is_expired( $events['fetch_date'] ) ) {
@@ -263,26 +263,30 @@ class LMG_ASA_Events_National {
 			$title_id = wp_unique_id( 'asa-event-title_' . $start_datetime . '_' );
 			$details_id = wp_unique_id( 'asa-event-details_' . $start_datetime . '_' );
 
+			if ( empty( $prev_start_date ) ) $prev_start_date = 'January 1, 1970';
+
 			ob_start();
 
 			?>
 
-				<li class="upcoming-event mc_general future-event mc_primary_general nonrecurring mc-events mc_rel_general">
+				<li data-startdate="<?php echo $start_date; ?>" data-prevstartdate="<?php echo $prev_start_date; ?>" class="upcoming-event mc_general future-event mc_primary_general nonrecurring mc-events mc_rel_general">
 					<div class="asa-event">
 						<div class="asa-event-image">
-							<img src="<?php echo $event['flyer']?>" class="mc-image wp-post-image" alt="" />
+							<img src="<?php echo $event['flyer']; ?>" class="mc-image wp-post-image" alt="" />
 						</div>
-						<h2><?php echo $event['title']?></h2>
-						<div class="asa-event-date"><span class="mc_db"><?php echo $event['full_time']?></span></div>
-						<div class="asa-event-time"><?php echo $event['full_time']?></div>
-						<div class="asa-event-description"><?php echo $event['description']?></p>
+						<h2><?php echo $event['title']; ?></h2>
+						<div class="asa-event-date"><span class="mc_db"><?php echo $event['full_time']; ?></span></div>
+						<!-- <div class="asa-event-time"><?php echo $event['full_time']; ?></div> -->
+						<div class="asa-event-description"><?php echo $event['description']; ?></p>
 						</div>
-						<div class="asa-event-location"><?php echo $event['location']?></div>
-						<div class="asa-event-registration"><a target="_blank" href="<?php echo $event['url']?>">Register Now</a></div>
+						<div class="asa-event-location"><?php echo $event['location']; ?></div>
+						<div class="asa-event-registration"><a target="_blank" href="<?php echo $event['url']; ?>">Register Now</a></div>
 					</div>
 				</li>
 
 			<?php
+
+			$prev_start_date = $start_date;
 
 			$output .= ob_get_clean();
 

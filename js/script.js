@@ -1,6 +1,6 @@
 jQuery(function($){
 
-	const lmgAddEvents = () => {
+	const lmgAddEventsToCal = () => {
 
 		$asaEvents = $('div#asa-events-hidden > div');
 
@@ -44,21 +44,43 @@ jQuery(function($){
 			
 		});
 
+	};
 
-		let i = 0;
-		$('div.asa-events-calendar ul.upcoming-events > li.upcoming-event').each(function(){
-			i++;
-			console.log('kk');
+	const lmgAddEventsToList = () => {
 
-		});
+		$('ul.upcoming-events').append($('div#asa-list-hidden > li'))
+
+		$('ul.upcoming-events > li.upcoming-event').sort(function(a, b){
+			let dateAttrA = $(a).attr('data-startdate');
+			if (typeof dateAttrA !== typeof undefined && dateAttrA !== false) {
+				dateAttrA = Date.parse(dateAttrA);
+			}else{
+				dateAttrA = Date.parse($(a).find('.asa-event-date .mc_db').text());
+			}
+
+			let dateAttrB = $(b).attr('data-startdate');
+			if (typeof dateAttrB !== typeof undefined && dateAttrB !== false) {
+				dateAttrB = Date.parse(dateAttrB);
+			}else{
+				dateAttrB = Date.parse($(b).find('.asa-event-date .mc_db').text());
+			}
+
+			console.log(dateAttrA);
+			console.log(dateAttrB);
+			console.log('---');
+
+			return (dateAttrA > dateAttrB) ? 1 : -1;
+		}).appendTo('ul.upcoming-events');
+
 	};
 
 	$(document).ready(function(){
-		lmgAddEvents();
+		lmgAddEventsToCal();
+		lmgAddEventsToList();
 	});
 
 	new MutationObserver(function(mutations, observer){
-		lmgAddEvents();
+		lmgAddEventsToCal();
 	}).observe(document.querySelector('div.mc-main'), {childList: true});
 
 });
