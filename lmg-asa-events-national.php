@@ -60,7 +60,8 @@ class LMG_ASA_Events_National {
 		wp_enqueue_script( 'lmgasaevtnat', LMGASAEVTNAT_DIR_URL . 'js/script.js',  array( 'jquery' ), LMGASAEVTNAT_VERSION, true );
 		//wp_enqueue_style(  'lmgasaevtnat', LMGASAEVTNAT_DIR_URL . 'css/style.css', array(          ), LMGASAEVTNAT_VERSION       );
 
-		add_action( 'wp_footer', array( $this, 'output' ) );
+		add_action( 'wp_footer', array( $this, 'output_cal' ) );
+		add_action( 'wp_footer', array( $this, 'output_list' ) );
 
 	}
 
@@ -70,6 +71,7 @@ class LMG_ASA_Events_National {
 		if ( is_admin() ) return false;
 
 		$events = get_option( 'lmgasaevtnat_events' );
+		echo '<pre>' . print_r( $events, true ) . '</pre>';
 
 		// fetch list of events once per day
 		if ( ! isset( $events['fetch_date'] ) || empty( $events['fetch_date'] ) || $this->is_expired( $events['fetch_date'] ) ) {
@@ -106,13 +108,15 @@ class LMG_ASA_Events_National {
 			$event['image']       = trim( $html->find( 'div.mn-image img',                             0 )->src       );
 			$event['flyer']       = trim( $html->find( 'div#mn-event-gallery div.mn-gallery-item img', 0 )->src       );
 			$event['description'] = trim( $html->find( 'div.mn-details-description div.mn-text',       0 )->innertext );
+			$event['additional']  = trim( $html->find( 'div.mn-additional-information',                0 )->innertext );
 			$event['location']    = trim( $html->find( 'div.mn-location-description div.mn-text',      0 )->innertext );
 			$event['price']       = trim( $html->find( 'div.mn-pricing-description',                   0 )->innertext );
 
-			$event['start_time'] = $this->get_start_time( $html->find( 'div.mn-date', 0 )->plaintext );
-			$event['end_time']   = $this->get_end_time(   $html->find( 'div.mn-date', 0 )->plaintext );
+			$event['full_time'] = str_replace( '  ', ' ', trim( $html->find( 'div.mn-date', 0 )->plaintext ) );
+			$event['start_time'] = $this->get_start_time( $event['full_time'] );
+			$event['end_time']   = $this->get_end_time(   $event['full_time'] );
 
-			$event['fetch_date']  = date( 'Y-m-d' );
+			$event['fetch_date'] = date( 'Y-m-d' );
 
 			$events[$key] = $event;
 
@@ -132,6 +136,7 @@ class LMG_ASA_Events_National {
 
 		$html = file_get_html( 'https://members.asaonline.com/calendar/Search?mode=0' );
 		$items = $html->find( 'div#mn-infinite-scroll div.mn-listing' );
+		$keys = array();
 
 		foreach ( $items as $item ) {
 
@@ -158,7 +163,14 @@ class LMG_ASA_Events_National {
 			// add/update list item
 			$list[$event['url']] = $event;
 
+			$keys[] = $event['url'];
+
 		}
+
+		// remove events that are no longer on the list page
+		$list = array_filter( $list, function( $event ) use ( $keys ) {
+			return in_array( $event['url'], $keys );
+		} );
 
 		// set date list was fetched
 		$list['fetch_date'] = date( 'Y-m-d' );
@@ -190,8 +202,6 @@ class LMG_ASA_Events_National {
 
 	function get_start_time( $str ) {
 
-		$str = str_replace( '  ', ' ', trim( $str ) );
-
 		$start_time_r = explode( ' ', $str );
 
 		return trim( $start_time_r[4], '(' ) . ' ' . $start_time_r[5];
@@ -199,8 +209,6 @@ class LMG_ASA_Events_National {
 	}
 
 	function get_end_time( $str ) {
-
-		$str = str_replace( '  ', ' ', trim( $str ) );
 
 		$start_time_r = explode( ' ', $str );
 
@@ -218,7 +226,75 @@ class LMG_ASA_Events_National {
 
 	}
 
-	function output() {
+	function output_list() {
+
+		$events = get_option( 'lmgasaevtnat_events' );
+
+		if ( empty( $events ) ) return false;
+
+		$output = '<div id="asa-list-hidden" style="display: none;">';
+
+		foreach ( $events as $event ) :
+
+			if (
+				   ! is_array( $event )
+				|| empty( $event['start_date'] )
+				|| empty( $event['start_time'] )
+				|| empty( $event['end_date'] )
+				|| empty( $event['end_time'] )
+				|| empty( $event['title'] )
+				|| empty( $event['url'] )
+			) {
+				continue;
+			}
+
+			$start_date = date( 'F d, Y', strtotime( $event['start_date'] ) );
+			$start_time = strtolower( $event['start_time'] );
+			$start_datetime = date( 'Y-m-d\TH:i:s', strtotime( $event['start_date'] . ' ' . $event['start_time'] ) );
+
+			$end_date = date( 'F d, Y', strtotime( $event['end_date'] ) );
+			$end_time = strtolower( $event['end_time'] );
+			$end_datetime = date( 'Y-m-d\TH:i:s', strtotime( $event['end_date'] . ' ' . $event['end_time'] ) );
+
+			//$start_day = date( 'd', strtotime( $event['start_date'] ) );
+			//$start_month = date( 'm', strtotime( $event['start_date'] ) );
+
+			$event_id = wp_unique_id( 'asa-event_' . $start_datetime . '_' );
+			$title_id = wp_unique_id( 'asa-event-title_' . $start_datetime . '_' );
+			$details_id = wp_unique_id( 'asa-event-details_' . $start_datetime . '_' );
+
+			ob_start();
+
+			?>
+
+				<li class="upcoming-event mc_general future-event mc_primary_general nonrecurring mc-events mc_rel_general">
+					<div class="asa-event">
+						<div class="asa-event-image">
+							<img src="<?php echo $event['flyer']?>" class="mc-image wp-post-image" alt="" />
+						</div>
+						<h2><?php echo $event['title']?></h2>
+						<div class="asa-event-date"><span class="mc_db"><?php echo $event['full_time']?></span></div>
+						<div class="asa-event-time"><?php echo $event['full_time']?></div>
+						<div class="asa-event-description"><?php echo $event['description']?></p>
+						</div>
+						<div class="asa-event-location"><?php echo $event['location']?></div>
+						<div class="asa-event-registration"><a target="_blank" href="<?php echo $event['url']?>">Register Now</a></div>
+					</div>
+				</li>
+
+			<?php
+
+			$output .= ob_get_clean();
+
+		endforeach;
+
+		$output .= '</div>';
+
+		echo $output;
+
+	}
+
+	function output_cal() {
 
 		$events = get_option( 'lmgasaevtnat_events' );
 
@@ -286,7 +362,8 @@ class LMG_ASA_Events_National {
 						<h4 class="mc-title"><?php echo $start_time; ?>: <?php echo $event['title']; ?></h4>
 					
 						<div class="time-block">
-							<p>
+							<p><?php echo $event['full_time']; ?></p>
+							<p style="display: none;">
 								<span class="time-wrapper">
 									<span class="event-time dtstart">
 										<time class="value-title" datetime="<?php echo $start_datetime; ?>" title="<?php echo $start_datetime; ?>"><?php echo $start_time; ?></time>
@@ -299,6 +376,7 @@ class LMG_ASA_Events_National {
 								<br />
 								<span class="date-wrapper">
 									<span class="mc-start-date dtstart" title="<?php echo $start_datetime; ?>" content="<?php echo $start_datetime; ?>"><?php echo $start_date; ?></span>  
+									<span class="mc-end-date dtend" title="<?php echo $end_datetime; ?>" content="<?php echo $end_datetime; ?>"><?php echo $end_date; ?></span>  
 								</span>
 							</p>
 						</div>
@@ -308,7 +386,15 @@ class LMG_ASA_Events_National {
 						<?php endif; ?>
 
 						<?php if ( ! empty( $event['description'] ) ) : ?>
-							<div class="longdesc description"><?php echo $event['description']; ?></div>
+							<div class="longdesc description">
+								<?php
+									echo $event['description'];
+
+									if ( ! empty( $event['additional'] ) ) {
+										echo '<br /><br />' . $event['additional'];
+									}
+								?>
+							</div>
 						<?php endif; ?>
 
 						<?php if ( ! empty( $event['location'] ) ) : ?>

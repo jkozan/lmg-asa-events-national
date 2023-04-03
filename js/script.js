@@ -6,10 +6,31 @@ jQuery(function($){
 
 		$('div.mc-main table.my-calendar-table td:not(.nextmonth)').each(function(){
 			let $td = $(this);
-			let thisDate = Date.parse($td.find('span.mc-date span.screen-reader-text').text());
+			let tdDate = Date.parse($td.find('span.mc-date span.screen-reader-text').text());
 
 			$items = $asaEvents.filter(function(){
-				return thisDate == Date.parse( $(this).find('.mc-start-date').text() );
+				let itemStartDate = Date.parse($(this).find('.mc-start-date').text());
+				let itemEndDate = Date.parse($(this).find('.mc-end-date').text());
+
+				if(
+						(
+							   (tdDate == itemStartDate) 
+							|| (tdDate > itemStartDate && tdDate < itemEndDate) 
+							|| (tdDate == itemEndDate)
+						)
+
+						/*&&
+
+						(
+
+							// TODO: prevent duplicates
+
+						)*/
+				){
+					return true;
+				}else{
+					return false;
+				}
 			}).clone();
 
 			if($items.length){
@@ -21,6 +42,14 @@ jQuery(function($){
 				$td.addClass('has-events');
 			}
 			
+		});
+
+
+		let i = 0;
+		$('div.asa-events-calendar ul.upcoming-events > li.upcoming-event').each(function(){
+			i++;
+			console.log('kk');
+
 		});
 	};
 
