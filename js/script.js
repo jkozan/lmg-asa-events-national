@@ -65,10 +65,6 @@ jQuery(function($){
 				dateAttrB = Date.parse($(b).find('.asa-event-date .mc_db').text());
 			}
 
-			console.log(dateAttrA);
-			console.log(dateAttrB);
-			console.log('---');
-
 			return (dateAttrA > dateAttrB) ? 1 : -1;
 		}).appendTo('ul.upcoming-events');
 

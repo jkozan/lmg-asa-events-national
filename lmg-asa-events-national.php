@@ -277,10 +277,23 @@ class LMG_ASA_Events_National {
 						<h2><?php echo $event['title']; ?></h2>
 						<div class="asa-event-date"><span class="mc_db"><?php echo $event['full_time']; ?></span></div>
 						<!-- <div class="asa-event-time"><?php echo $event['full_time']; ?></div> -->
-						<div class="asa-event-description"><?php echo $event['description']; ?></p>
+						<div class="asa-event-description">
+							<?php
+								echo $event['description'];
+								if ( ! empty( $event['additional'] ) ) {
+									echo $event['additional'];
+								}
+							?>
 						</div>
 						<div class="asa-event-location"><?php echo $event['location']; ?></div>
-						<div class="asa-event-registration"><a target="_blank" href="<?php echo $event['url']; ?>">Register Now</a></div>
+						<div class="asa-event-registration">
+							<?php
+								if ( ! empty( $event['price'] ) ) {
+									echo $event['price'] . '<br /><br />';
+								}
+							?>
+							<a target="_blank" href="<?php echo $event['url']; ?>">Register Now</a>
+						</div>
 					</div>
 				</li>
 
